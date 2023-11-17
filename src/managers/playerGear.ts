@@ -2,11 +2,11 @@ import type { Texture } from 'pixi.js'
 import type { KnownAnimation } from '~/entities/player.js'
 import { createSprite } from '~/textures/sprites.js'
 
-export interface Item {
+export interface Gear {
   displayName: string
   texture: Texture
   textureURL: string
-  animationName: string
+  animationName: KnownAnimation
   anchorX: number
   anchorY: number
   rotation: number
@@ -14,9 +14,9 @@ export interface Item {
   speedMultiplier: number | undefined
 }
 
-export type PlayerItem = Item | undefined
+export type PlayerGear = Gear | undefined
 
-export const createItem = (
+export const createGear = (
   displayName: string,
   textureURL: string,
   animationName: string,
@@ -25,28 +25,14 @@ export const createItem = (
   anchorY = 0.5,
   rotation = 0,
   bone: 'handLeft' | 'handRight' = 'handRight',
-): PlayerItem => {
+): PlayerGear => {
   const texture = createSprite(textureURL).texture
 
-  const validAnimations: KnownAnimation[] = [
-    'idle',
-    'jump',
-    'walk',
-    'bow',
-    'greatsword',
-    'shoot',
-  ]
-  const finalAnimationName = validAnimations.includes(
-    animationName as KnownAnimation,
-  )
-    ? animationName
-    : 'greatsword'
-
-  const newItem: PlayerItem = {
+  const newItem: PlayerGear = {
     displayName,
     texture,
     textureURL,
-    animationName: finalAnimationName,
+    animationName,
     anchorX,
     anchorY,
     rotation,

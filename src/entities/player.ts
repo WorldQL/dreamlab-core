@@ -6,7 +6,7 @@ import { createEntity, isEntity } from '~/entity.js'
 import type { Entity } from '~/entity.js'
 import type { Game } from '~/game'
 import type { InputManager } from '~/input/manager.js'
-import type { PlayerItem } from '~/managers/playerItem'
+import type { PlayerGear } from '~/managers/playerGear'
 import { v, Vec } from '~/math/vector.js'
 import type { LooseVector, Vector } from '~/math/vector.js'
 import type { NetClient } from '~/network/client.js'
@@ -43,7 +43,7 @@ interface Render {
   gfxBounds: Graphics
   gfxFeet: Graphics
 
-  itemSprite: Sprite
+  gearSprites: Sprite[]
 }
 
 const symbol = Symbol.for('@dreamlab/core/entities/player')
@@ -66,11 +66,13 @@ export interface Player extends PlayerCommon, Entity<Data, Render> {
   get [symbol](): true
   get bones(): Readonly<Record<Bone, Vector>>
   get events(): EventEmitter<PlayerEvents>
-  get itemInHand(): PlayerItem
   get currentAnimation(): string
   get facingDirection(): number
+  get playerGear(): Map<Bone, PlayerGear>
 
-  setItemInHand(item: PlayerItem): void
+  getGearOnBone(bone: Bone): PlayerGear
+  getBoneFromGear(gear: PlayerGear): Bone | undefined
+  setGearOnBone(gear: PlayerGear, bone: Bone): void
   teleport(position: LooseVector, resetVelocity?: boolean): void
 }
 
@@ -79,23 +81,49 @@ export interface PlayerSize {
   height: number
 }
 
-export type KnownPlayerAnimation = 'idle' | 'jog' | 'jump' | 'walk'
-export type KnownAttackAnimation = 'greatsword' | 'punch'
-export type KnownRangedAttackAnimation = 'bow' | 'shoot'
-
-export type KnownAnimation =
-  | KnownAttackAnimation
-  | KnownPlayerAnimation
-  | KnownRangedAttackAnimation
+export enum KnownAnimation {
+  BowAttack = 'bow',
+  GreatSwordAttack = 'greatsword',
+  Idle = 'idle',
+  Jog = 'jog',
+  Jump = 'jump',
+  PunchAttack = 'punch',
+  ShootAttack = 'shoot',
+  Walk = 'walk',
+}
 
 export enum PlayerInput {
-  Attack = '@player/attack',
   Crouch = '@player/crouch',
   Jog = '@player/jog',
   Jump = '@player/jump',
+  PrimaryAction = '@player/action1',
+  SecondaryAction = '@player/action2',
   ToggleNoclip = '@player/toggle-noclip',
   WalkLeft = '@player/walk-left',
   WalkRight = '@player/walk-right',
+}
+
+const inputToAnimationMap: Record<PlayerInput, KnownAnimation> = {
+  [PlayerInput.PrimaryAction]:
+    KnownAnimation.GreatSwordAttack ||
+    KnownAnimation.BowAttack ||
+    KnownAnimation.PunchAttack ||
+    KnownAnimation.ShootAttack,
+  [PlayerInput.SecondaryAction]:
+    KnownAnimation.GreatSwordAttack ||
+    KnownAnimation.BowAttack ||
+    KnownAnimation.PunchAttack ||
+    KnownAnimation.ShootAttack,
+  [PlayerInput.Crouch]: KnownAnimation.Idle,
+  [PlayerInput.Jog]: KnownAnimation.Jog,
+  [PlayerInput.Jump]: KnownAnimation.Jump,
+  [PlayerInput.ToggleNoclip]: KnownAnimation.Idle,
+  [PlayerInput.WalkLeft]: KnownAnimation.Walk,
+  [PlayerInput.WalkRight]: KnownAnimation.Walk,
+}
+
+function getAnimationForInput(input: PlayerInput): KnownAnimation {
+  return inputToAnimationMap[input]
 }
 
 export const createPlayer = (
@@ -124,8 +152,8 @@ export const createPlayer = (
     }
   }
 
-  let currentAnimation: KnownAnimation = 'idle'
-  let playerItem: PlayerItem
+  let currentAnimation: KnownAnimation = KnownAnimation.Idle
+  let playerGear: Map<Bone, PlayerGear>
   let spriteSign = 1
   let currentFrame = 0
 
@@ -141,20 +169,28 @@ export const createPlayer = (
   })
 
   const getAnimation = (direction: number): KnownAnimation => {
-    if (noclip) return 'idle'
-    if (hasJumped && !attack) return 'jump'
+    if (noclip) return KnownAnimation.Idle
+    if (hasJumped && !attack) return KnownAnimation.Jump
+    if (attack) {
+      const handRightAnimation = playerGear.get('handRight')?.animationName
+      const handLeftAnimation = playerGear.get('handLeft')?.animationName
+      if (
+        handLeftAnimation === getAnimationForInput(PlayerInput.PrimaryAction)
+      ) {
+        return handLeftAnimation
+      }
 
-    const animationName = playerItem
-      ? playerItem.animationName.toLowerCase()
-      : 'punch'
-    if (
-      attack &&
-      ['greatsword', 'bow', 'punch', 'shoot'].includes(animationName)
-    )
-      return animationName as KnownAnimation
-    if (direction !== 0) return isJogging ? 'jog' : 'walk'
+      if (
+        handRightAnimation === getAnimationForInput(PlayerInput.PrimaryAction)
+      ) {
+        return handRightAnimation
+      }
+    }
 
-    return 'idle'
+    if (direction !== 0)
+      return isJogging ? KnownAnimation.Jog : KnownAnimation.Walk
+
+    return KnownAnimation.Idle
   }
 
   // These should match offsets in https://github.com/WorldQL/painter-shoggoth/blob/trunk/prepare_animations.py
@@ -254,10 +290,6 @@ export const createPlayer = (
       return events
     },
 
-    get itemInHand(): PlayerItem {
-      return playerItem
-    },
-
     get currentAnimation(): string {
       return currentAnimation
     },
@@ -266,8 +298,26 @@ export const createPlayer = (
       return -spriteSign
     },
 
-    setItemInHand(item: PlayerItem) {
-      playerItem = item
+    get playerGear(): Map<Bone, PlayerGear> {
+      return playerGear
+    },
+
+    setGearOnBone(gear: PlayerGear, bone: Bone) {
+      playerGear.set(bone, gear)
+    },
+
+    getGearOnBone(bone: Bone) {
+      return playerGear.get(bone)
+    },
+
+    getBoneFromGear(gear: PlayerGear) {
+      for (const [bone, currentGear] of playerGear.entries()) {
+        if (currentGear === gear) {
+          return bone
+        }
+      }
+
+      return undefined
     },
 
     teleport(position: LooseVector, resetVelocity = true) {
@@ -290,7 +340,16 @@ export const createPlayer = (
         inputs.registerInput(PlayerInput.Jump, 'Jump', 'Space')
         inputs.registerInput(PlayerInput.Crouch, 'Crouch', 'KeyS')
         inputs.registerInput(PlayerInput.Jog, 'Jog', 'ShiftLeft')
-        inputs.registerInput(PlayerInput.Attack, 'Attack', 'MouseLeft')
+        inputs.registerInput(
+          PlayerInput.PrimaryAction,
+          'PrimaryAction',
+          'MouseLeft',
+        )
+        inputs.registerInput(
+          PlayerInput.SecondaryAction,
+          'SecondaryAction',
+          'KeyZ',
+        )
         inputs.registerInput(PlayerInput.ToggleNoclip, 'Toggle Noclip', 'KeyV')
 
         inputs.addListener(PlayerInput.ToggleNoclip, onToggleNoclip)
@@ -316,10 +375,15 @@ export const createPlayer = (
       sprite.anchor.set(...PLAYER_SPRITE_ANCHOR)
       sprite.play()
 
-      const item = playerItem
-      const itemSprite = item ? new Sprite(item.texture) : new Sprite()
-      itemSprite.width = 200
-      itemSprite.height = 200
+      const gearSprites: Sprite[] = []
+      for (const [_bone, gearItem] of playerGear.entries()) {
+        const itemSprite = new Sprite(gearItem?.texture)
+        itemSprite.width = 200 // Or any other dimension based on the gear
+        itemSprite.height = 200
+        // You may also want to position or transform these sprites based on the bone they are associated with
+        gearSprites.push(itemSprite)
+        stage.addChild(itemSprite)
+      }
 
       const gfxBounds = new Graphics()
       const gfxFeet = new Graphics()
@@ -331,15 +395,13 @@ export const createPlayer = (
       drawBox(gfxBounds, { width, height }, { stroke: '#00f' })
 
       stage.addChild(sprite, gfxBounds, gfxFeet)
-      stage.addChild(itemSprite)
 
       return {
         camera,
         sprite,
         gfxBounds,
         gfxFeet,
-        itemSprite,
-        item,
+        gearSprites,
       }
     },
 
@@ -350,11 +412,13 @@ export const createPlayer = (
       physics.clearPlayer()
     },
 
-    teardownRenderContext({ sprite, itemSprite, gfxBounds, gfxFeet }) {
-      sprite.destroy()
-      itemSprite.destroy()
+    teardownRenderContext({ sprite, gearSprites, gfxBounds, gfxFeet }) {
       gfxBounds.destroy()
       gfxFeet.destroy()
+      sprite.destroy()
+      for (const gearSprite of gearSprites) {
+        gearSprite.destroy()
+      }
     },
 
     onPhysicsStep(
@@ -364,7 +428,8 @@ export const createPlayer = (
       const left = inputs?.getInput(PlayerInput.WalkLeft) ?? false
       const right = inputs?.getInput(PlayerInput.WalkRight) ?? false
       const jump = inputs?.getInput(PlayerInput.Jump) ?? false
-      attack = (colliding && inputs?.getInput(PlayerInput.Attack)) ?? false
+      attack =
+        (colliding && inputs?.getInput(PlayerInput.PrimaryAction)) ?? false
       isJogging = inputs?.getInput(PlayerInput.Jog) ?? false
       const crouch = inputs?.getInput(PlayerInput.Crouch) ?? false
 
@@ -457,7 +522,11 @@ export const createPlayer = (
       }
 
       if (attack && isAttackFrame()) {
-        game.events.common.emit('onPlayerAttack', this as Player, playerItem)
+        game.events.common.emit(
+          'onPlayerAttack',
+          this as Player,
+          playerGear.get('handRight'),
+        )
       }
 
       network?.sendPlayerPosition(
@@ -486,7 +555,7 @@ export const createPlayer = (
         facing: { value: facing },
         colliding: { value: colliding },
       },
-      { camera, sprite, itemSprite, gfxBounds, gfxFeet },
+      { camera, sprite, gearSprites: itemSprite, gfxBounds, gfxFeet },
     ) {
       const scale = facing === 'left' ? 1 : -1
       const newScale = scale * PLAYER_SPRITE_SCALE

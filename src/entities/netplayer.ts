@@ -16,7 +16,7 @@ import type {
 } from '~/entities/player.js'
 import { createEntity, dataManager, isEntity } from '~/entity.js'
 import type { Entity } from '~/entity.js'
-import type { PlayerItem } from '~/managers/playerItem'
+import type { PlayerGear } from '~/managers/playerGear'
 import { v, Vec } from '~/math/vector.js'
 import type { LooseVector, Vector } from '~/math/vector.js'
 import type { Physics } from '~/physics.js'
@@ -53,11 +53,11 @@ export interface NetPlayer extends PlayerCommon, Entity<Data, Render> {
   get entityID(): string
 
   get body(): Body
-  get itemInHand(): PlayerItem
+  get itemInHand(): PlayerGear
   get currentAnimation(): string
   get facingDirection(): number
 
-  setItemInHand(item: PlayerItem): void
+  setItemInHand(item: PlayerGear): void
   setPosition(vector: LooseVector): void
   setVelocity(vector: LooseVector): void
   setFlipped(flipped: boolean): void
@@ -74,7 +74,7 @@ export const createNetPlayer = (
 
   let isFlipped = false
   let currentAnimation: KnownAnimation = 'idle'
-  let playerItem: PlayerItem
+  let playerItem: PlayerGear
   let animationChanged = false
   let currentFrame = 0
   let spriteSign = 1
@@ -164,7 +164,7 @@ export const createNetPlayer = (
       return -spriteSign
     },
 
-    setItemInHand(item: PlayerItem) {
+    setItemInHand(item: PlayerGear) {
       playerItem = item
     },
 

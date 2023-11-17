@@ -1,2 +1,2 @@
 export * from '~/managers/playerDataManager.js'
-export * from '~/managers/playerItem.js'
+export * from '~/managers/playerGear.js'
