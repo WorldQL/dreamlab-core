@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",
+    "@pixi/particle-emitter": "^5.0.8",
     "buffer": "^6.0.3",
     "dot-path-value": "^0.0.10",
     "dot-prop": "^8.0.2",
