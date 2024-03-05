@@ -14,3 +14,5 @@ export * from '~/entities/spawnable/nonsolid.js'
 export * from '~/entities/spawnable/platform-moving.js'
 export * from '~/entities/spawnable/platform.js'
 export * from '~/entities/spawnable/solid.js'
+
+export * from '~/entities/player-v2/platformer-player.js'

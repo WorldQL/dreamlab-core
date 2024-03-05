@@ -1,4 +1,8 @@
 import type { Game } from '~/game'
+import {
+  PlatformerPlayer,
+  PlatformerPlayerArgs,
+} from '../player-v2/platformer-player.js'
 import { Background, BackgroundArgs } from './background.js'
 import {
   BackgroundTrigger,
@@ -30,4 +34,10 @@ export const registerDefaultSpawnables = (game: Game<boolean>) => {
   game.register('@dreamlab/Platform', Platform, PlatformArgs)
   game.register('@dreamlab/MovingPlatform', MovingPlatform, MovingPlatformArgs)
   game.register('@dreamlab/Solid', Solid, NonSolidArgs)
+
+  game.register(
+    '@dreamlab/PlatformerPlayer',
+    PlatformerPlayer,
+    PlatformerPlayerArgs,
+  )
 }
