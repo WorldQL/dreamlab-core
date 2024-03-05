@@ -2,7 +2,15 @@ import Matter from 'matter-js'
 import { AnimatedSprite, Container, Sprite } from 'pixi.js'
 import { z } from 'zod'
 import type { RenderTime, Time } from '~/entity'
-import { camera, debug, inputs, isClient, physics, stage } from '~/labs/magic'
+import {
+  camera,
+  debug,
+  inputs,
+  isClient,
+  isServer,
+  physics,
+  stage,
+} from '~/labs/magic'
 import type { Gear } from '~/managers/gear'
 import type { Bounds } from '~/math/bounds'
 import { Vec } from '~/math/vector'
@@ -197,8 +205,9 @@ export class PlatformerPlayer extends SpawnableEntity<Args> {
 
     this.bones = Object.freeze(boneMap)
 
-    const $inputs = inputs()
-    if ($inputs) {
+    if (isClient()) {
+      const $inputs = inputs()
+
       $inputs.registerInput(PlayerInput.WalkLeft, 'Walk Left', 'KeyA')
       $inputs.registerInput(PlayerInput.WalkRight, 'Walk Right', 'KeyD')
       $inputs.registerInput(PlayerInput.Jump, 'Jump', 'Space')
@@ -270,6 +279,7 @@ export class PlatformerPlayer extends SpawnableEntity<Args> {
   #isAnimationLocked = false
 
   public override onPhysicsStep(_: Time): void {
+    if (isServer()) return
     if (!this.local) return
 
     const { body } = this
