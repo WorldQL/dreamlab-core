@@ -205,9 +205,8 @@ export class PlatformerPlayer extends SpawnableEntity<Args> {
 
     this.bones = Object.freeze(boneMap)
 
-    if (isClient()) {
-      const $inputs = inputs()
-
+    const $inputs = inputs()
+    if (this.local && $inputs) {
       $inputs.registerInput(PlayerInput.WalkLeft, 'Walk Left', 'KeyA')
       $inputs.registerInput(PlayerInput.WalkRight, 'Walk Right', 'KeyD')
       $inputs.registerInput(PlayerInput.Jump, 'Jump', 'Space')
