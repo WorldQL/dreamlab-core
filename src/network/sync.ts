@@ -173,7 +173,6 @@ export const updateSyncedValue = (
 ) => {
   const spawnables = game.entities.filter(isSpawnableEntity)
   const entity = spawnables.find(({ uid }) => uid === entityID)
-  console.log(spawnables, entity)
   if (!entity) return
 
   const syncedValue = Object.values(entity)

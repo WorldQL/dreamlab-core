@@ -222,8 +222,6 @@ export class PlatformerPlayer extends SpawnableEntity<Args> {
 
       // $inputs.addListener(PlayerInput.ToggleNoclip, this.#onToggleNoclip)
     }
-
-    console.log(this)
   }
 
   public override teardown(): void {
