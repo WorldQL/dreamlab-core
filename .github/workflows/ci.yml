@@ -56,6 +56,6 @@ jobs:
       - name: Edit version
         run: npm --ignore-scripts --no-git-tag-version version ${{ steps.info.outputs.pkg_version }}-dev-${{ steps.info.outputs.hash }}
       - name: Publish to NPM
-        run: npm publish --access=public --tag=dev
+        run: npm publish --access=public --tag=${{ github.ref == 'refs/heads/main' && 'dev' || github.ref_name }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
