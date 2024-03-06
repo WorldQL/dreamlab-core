@@ -73,7 +73,7 @@ export class Player extends BasePlayer {
     super.teardown()
     physics().clearPlayer()
 
-    inputs().removeListener(PlayerInput.ToggleNoclip, this.#onToggleNoclip)
+    inputs()?.removeListener(PlayerInput.ToggleNoclip, this.#onToggleNoclip)
     this.events.removeAllListeners()
   }
 
