@@ -81,6 +81,11 @@ export function events(
   throw new Error('invalid parameter: type')
 }
 
+export const inputs = () => {
+  const $game = game()
+  return $game.client?.inputs
+}
+
 const magicClient =
   <T>(name: string, fn: (game: Game<false>) => T) =>
   () => {
@@ -99,7 +104,6 @@ export const container = magicClient(
 export const canvas = magicClient('canvas', game => game.client.render.canvas)
 export const stage = magicClient('stage', game => game.client.render.stage)
 export const camera = magicClient('camera', game => game.client.render.camera)
-export const inputs = magicClient('inputs', game => game.client.inputs)
 
 export function network(type: 'client'): NetClient | undefined
 export function network(type: 'server'): NetServer | undefined
