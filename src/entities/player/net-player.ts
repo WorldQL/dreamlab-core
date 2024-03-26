@@ -22,6 +22,7 @@ export class NetPlayer extends BasePlayer {
 
   public constructor(
     public readonly connectionId: string,
+    public readonly playerId: string,
     entityId: string | undefined,
     characterId: string | undefined,
     nickname: string | undefined,
