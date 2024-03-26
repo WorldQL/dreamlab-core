@@ -1,5 +1,6 @@
 import '~/_internal/symbols'
 
+import * as tracing from '@char-lt/brakepad'
 import cuid2 from '@paralleldrive/cuid2'
 import { setProperty } from 'dot-prop'
 import Matter from 'matter-js'
@@ -429,6 +430,8 @@ export async function createGame<Server extends boolean>(
 
   // #region Tick Loop
   const onTick = async () => {
+    tracing.enter('core_tick')
+
     const now = performance.now()
     const delta = now - time
 
@@ -446,26 +449,42 @@ export async function createGame<Server extends boolean>(
     }
 
     while (physicsTickAcc >= physicsTickDelta) {
+      tracing.enter('physics')
       physicsTickAcc -= physicsTickDelta
 
+      tracing.enter('matter_update')
       Matter.Engine.update(physics.engine, physicsTickDelta)
 
+      tracing.replace('step_event')
       const timeState = {
         delta: physicsTickDelta / 1_000,
         time: time / 1_000,
       }
-
       events.common.emit('onPhysicsStep', timeState)
 
+      tracing.replace('step_entities', { count: entities.length })
       for (const entity of entities) {
         if (typeof entity.onPhysicsStep !== 'function') continue
-        if (isSpawnableEntity(entity) && physics.isFrozen(entity)) continue
 
+        const spawnable = isSpawnableEntity(entity)
+        if (spawnable && physics.isFrozen(entity)) continue
+
+        tracing.enter('entity', {
+          entity: spawnable
+            ? entity.definition.entity
+            : `<base entity ${entity?.constructor?.name}>`,
+        })
         entity.onPhysicsStep(timeState)
+        tracing.exit()
       }
+
+      tracing.exit()
+      tracing.exit()
     }
 
     if (renderContext) {
+      tracing.enter('render')
+
       // @ts-expect-error Private access
       inputs!.updateCursor()
 
@@ -482,6 +501,8 @@ export async function createGame<Server extends boolean>(
           entity.onRenderFrame(timeState)
         }
       }
+
+      tracing.exit()
     }
 
     const endOfTickNow = performance.now()
@@ -494,6 +515,8 @@ export async function createGame<Server extends boolean>(
       )
       events.common.emit('onTickTooLong', endOfTickNow - now)
     }
+
+    tracing.exit()
   }
 
   let interval: NodeJS.Timeout | undefined

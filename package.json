@@ -66,6 +66,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@char-lt/brakepad": "^1.1.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@pixi/particle-emitter": "^5.0.8",
     "buffer": "^6.0.3",
